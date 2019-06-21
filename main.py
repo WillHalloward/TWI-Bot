@@ -1,17 +1,26 @@
-from whoosh.qparser import QueryParser
+import sys
+
+from whoosh import highlight, qparser
 from whoosh import scoring
 from whoosh.index import open_dir
-import sys
+from whoosh.qparser import QueryParser
 
 ix = open_dir("indexdir")
 
-# query_str is query string
 query_str = sys.argv[1]
-# Top 'n' documents as result
-topN = int(sys.argv[2])
+parser = QueryParser("content", ix.schema)
+parser.add_plugin(qparser.FuzzyTermPlugin())
+query = parser.parse(query_str)
 
-query = QueryParser("content", ix.schema).parse(query_str)
-with ix.searcher(weighting=scoring.Frequency) as searcher:
-    results = searcher.search(query, limit=topN)
-    for i in range(topN):
-        print(results[i]['title'], str(results[i].score))
+with ix.searcher(weighting=scoring.BM25F) as searcher:
+    results = searcher.search(query)
+    results.fragmenter = highlight.SentenceFragmenter()
+    results.formatter = highlight.UppercaseFormatter()
+
+    for hit in results:
+        print(hit["title"])
+        print("Score: " + str(hit.score))
+        print("Rank: ", hit.rank)
+        with open(hit["path"], encoding="utf8") as fileobj:
+            filecontents = fileobj.read()
+            print(hit.highlights("content", text=filecontents))
