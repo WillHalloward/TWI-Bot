@@ -1,5 +1,6 @@
 from discord.ext import commands
 
+import createSearchableData
 import search
 import secrets
 
@@ -15,9 +16,9 @@ async def on_ready():
 
 
 @bot.command()
-async def find(ctx, query):
+async def find(ctx, query, n: int):
     try:
-        output = search.search(query)
+        output = search.search(query, n)
         await ctx.send(output)
     except:
         await ctx.send("Error")
@@ -26,6 +27,18 @@ async def find(ctx, query):
 @bot.command()
 async def add(ctx, a: int, b: int):
     await ctx.send(a + b)
+
+
+@bot.command()
+async def refreshUrl(ctx):
+    createSearchableData.createSearchableDatafromUrl()
+    await ctx.send("@everyone Done")
+
+
+@bot.command()
+async def refreshIndex(ctx):
+    createSearchableData.createSearchableData("TWI")
+    await ctx.send("@everyone Done")
 
 
 bot.run(secrets.bot_token)
