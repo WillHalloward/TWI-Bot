@@ -16,8 +16,11 @@ async def on_ready():
 
 @bot.command()
 async def find(ctx, query):
-    output = search.search(query)
-    await ctx.send(output)
+    try:
+        output = search.search(query)
+        await ctx.send(output)
+    except:
+        await ctx.send("Error")
 
 
 @bot.command()
