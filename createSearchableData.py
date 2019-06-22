@@ -1,17 +1,16 @@
 import os
-import codecs
-from whoosh.index import create_in
+
 from whoosh.fields import Schema, TEXT, ID
+from whoosh.index import create_in
 
 
 def createSearchableData(root):
-    schema = Schema(title=TEXT(stored=True), path=ID(stored=True), content=TEXT, textdata=TEXT(stored=True))
+    schema = Schema(title=TEXT(stored=True), path=ID(stored=True), content=TEXT(stored=True),
+                    textdata=TEXT(stored=True))
     if not os.path.exists("indexdir"):
         os.mkdir("indexdir")
-
     ix = create_in("indexdir", schema)
     writer = ix.writer()
-
     filepath = [os.path.join(root, i) for i in os.listdir(root)]
     for path in filepath:
         print(path)
@@ -22,6 +21,3 @@ def createSearchableData(root):
     print("Almost done")
     writer.commit()
     print("Done")
-
-root = "TWI"
-createSearchableData(root)
