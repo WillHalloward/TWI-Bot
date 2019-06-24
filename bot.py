@@ -2,6 +2,7 @@ from discord.ext import commands
 
 import createSearchableData
 import patreon_poll
+import prediction
 import search
 import secrets
 
@@ -44,5 +45,25 @@ async def refreshIndex(ctx):
 @bot.command()
 async def poll(ctx):
     await patreon_poll.p_poll(ctx)
+
+
+@bot.command()
+async def bet(ctx, time, words):
+    await prediction.bet(ctx, time, words)
+    print(ctx.author.id)
+
+
+@bot.command()
+async def av(ctx):
+    await ctx.send("<@{}>".format(ctx.author.id))
+
+
+@bot.command()
+async def setPoll(ctx):
+    await ctx.send("New poll set to <{}>".format(await patreon_poll.set_poll(ctx)))
+    message = await patreon_poll.p_poll(ctx)
+    print(message)
+    await message.pin()
+
 
 bot.run(secrets.bot_token)
