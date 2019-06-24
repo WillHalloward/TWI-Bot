@@ -1,6 +1,7 @@
 from discord.ext import commands
 
 import createSearchableData
+import patreon_poll
 import search
 import secrets
 
@@ -16,18 +17,17 @@ async def on_ready():
 
 
 @bot.command()
-async def find(ctx, query, n: int):
-    try:
-        output = search.search(query, n)
-        await ctx.send(output)
-    except:
-        await ctx.send("Error")
-
+async def find(ctx, query):
+    await search.search(query, ctx)
 
 @bot.command()
 async def add(ctx, a: int, b: int):
     await ctx.send(a + b)
 
+
+@bot.command()
+async def wordcount(ctx, chapter):
+    await search.word_count(chapter, ctx)
 
 @bot.command()
 async def refreshUrl(ctx):
@@ -40,5 +40,9 @@ async def refreshIndex(ctx):
     createSearchableData.createSearchableData("TWI")
     await ctx.send("@everyone Done")
 
+
+@bot.command()
+async def poll(ctx):
+    await patreon_poll.p_poll(ctx)
 
 bot.run(secrets.bot_token)

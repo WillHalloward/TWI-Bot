@@ -4,7 +4,7 @@ from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
-from whoosh.fields import Schema, TEXT, ID, DATETIME
+from whoosh.fields import Schema, TEXT, ID, DATETIME, NUMERIC
 from whoosh.index import create_in
 
 
@@ -33,7 +33,8 @@ def createSearchableDatafromUrl():
     if not os.path.exists("indexdir"):
         os.mkdir("indexdir")
     schema = Schema(title=TEXT(stored=True), path=ID(stored=True), content=TEXT(stored=True),
-                    textdata=TEXT(stored=True), date=DATETIME, url=ID(stored=True), wordcount=TEXT)
+                    textdata=TEXT(stored=True), date=DATETIME(sortable=True), url=ID(stored=True),
+                    wordcount=NUMERIC(stored=True, sortable=True))
     ix = create_in("indexdir", schema)
     writer = ix.writer()
     while True:
@@ -43,13 +44,14 @@ def createSearchableDatafromUrl():
         title = soup.find("h1", {"class": "entry-title"})
         p_date = soup.find("time", {"class": "entry-date"})
         p_date_converted = datetime.strptime(p_date['datetime'], '%Y-%m-%dT%H:%M:%S+00:00')
-
         url_list = body.find_all('a')
-        print(title.text)
         count = len(re.findall(r'\w+', body.text))
+        print(title.text)
+        print(url)
+        print(count)
+        print(p_date_converted)
         writer.add_document(title=title.text, content=body.text, textdata=body.text, date=p_date_converted, url=url,
                             wordcount=count)
-        print(url)
         try:
             url = url_list[-1].get('href')
         except:
