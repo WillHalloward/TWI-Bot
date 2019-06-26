@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
 import requests
@@ -37,13 +37,15 @@ async def p_poll(ctx):
     title = json_data['data']['attributes']['question_text']
     open_at_converted = datetime.strptime(open_at, '%Y-%m-%dT%H:%M:%S.%f+00:00')
     closes_at_converted = datetime.strptime(closes_at, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+    time_left = closes_at_converted - datetime.now() + timedelta(hours=2)
+    datetime.timestamp(datetime.now())
     option = json_data['included']
     n_options = json_data['data']['relationships']['choices']['data']
     embed = discord.Embed(title="Poll", color=discord.Color(0x3cd63d), description="**{}**".format(title))
-    embed.set_footer(text="Poll started at {} and closes at {}".format(open_at_converted, closes_at_converted))
+    embed.set_footer(
+        text="Poll started at {} and closes at {} ({} days left)".format(open_at_converted, closes_at_converted,
+                                                                         time_left.days))
     for i in range(0, len(n_options)):
-        print(option[i]['attributes']['text_content'])
-        print(option[i]['attributes']['num_responses'])
         embed.add_field(name="{}".format(option[i]['attributes']['text_content']),
                         value="{}".format(option[i]['attributes']['num_responses']), inline=False)
     return await ctx.send(embed=embed)
