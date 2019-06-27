@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta
+from operator import itemgetter
 
 import discord
 import requests
@@ -14,42 +15,63 @@ async def set_poll(ctx):
     for posts in json_data['data']:
         if posts['relationships']['poll']['data'] is not None:
             url = posts['relationships']['poll']['links']['related']
-            with open("poll_url.txt", "w+") as d:
-                d.write(url)
-            return "https://www.patreon.com" + posts['attributes']['patreon_url']
-    return "No poll found"
+            links = {
+                "api": url,
+                "url": "https://www.patreon.com" + posts['attributes']['patreon_url']
+            }
+            message = await ctx.send("Poll set to <{}>".format(links['url']))
 
-
-
+            with open("api_url.json", "w+") as d:
+                json.dump(links, d)
+            return True
+    return False
 
 
 async def p_poll(ctx):
     try:
-        with open("poll_url.txt", "r") as d:
-            url = d.read()
-    except:
-        await ctx.send("**Error** - No poll set, Please run **!setPoll** to set poll")
+        with open("api_url.json", 'r') as f:
+            file_json = json.load(f)
+    except OSError.filename:
+        await ctx.send("**Error** - No poll set, Please run **!setpoll** to set poll")
         return
-    page = requests.get(url, cookies=secrets.cookies)
+    page = requests.get(file_json['api'], cookies=secrets.cookies)
     json_data = json.loads(page.text)
     open_at = json_data['data']['attributes']['created_at']
     closes_at = json_data['data']['attributes']['closes_at']
     title = json_data['data']['attributes']['question_text']
     open_at_converted = datetime.strptime(open_at, '%Y-%m-%dT%H:%M:%S.%f+00:00')
     closes_at_converted = datetime.strptime(closes_at, '%Y-%m-%dT%H:%M:%S.%f+00:00')
-    time_left = closes_at_converted - datetime.now() + timedelta(hours=2)
-    datetime.timestamp(datetime.now())
-    option = json_data['included']
-    n_options = json_data['data']['relationships']['choices']['data']
-    embed = discord.Embed(title="Poll", color=discord.Color(0x3cd63d), description="**{}**".format(title))
+    time_left = closes_at_converted - datetime.now() + timedelta(hours=3)
+    hours = int(((time_left.total_seconds() // 3600) % 24))
+    li = []
+    for i in range(0, len(json_data['data']['relationships']['choices']['data'])):
+        data = (json_data['included'][i]['attributes']['text_content'],
+                json_data['included'][i]['attributes']['num_responses'])
+        li.append(data)
+    li = sorted(li, key=itemgetter(1), reverse=True)
+    embed = discord.Embed(title="Poll", color=discord.Color(0x3cd63d),
+                          description="**[{}]({})**".format(title, file_json['url']))
     embed.set_footer(
-        text="Poll started at {} and closes at {} ({} days left)".format(open_at_converted, closes_at_converted,
-                                                                         time_left.days))
-    for i in range(0, len(n_options)):
-        embed.add_field(name="{}".format(option[i]['attributes']['text_content']),
-                        value="{}".format(option[i]['attributes']['num_responses']), inline=False)
-    return await ctx.send(embed=embed)
+        text="Poll started at {} and closes at {} ({} days and {} hours left)".format(open_at_converted,
+                                                                                      closes_at_converted,
+                                                                                      time_left.days, hours))
+    for option in li:
+        embed.add_field(name=option[0], value=option[1], inline=False)
+    return embed
+
+
+async def update_poll(ctx):
+    try:
+        with open("api_url.json", 'r') as f:
+            file_json = json.load(f)
+    except OSError.filename:
+        return
+    msg = await ctx.fetch_message(file_json['poll_id'])
+    await msg.edit(embed=await p_poll(ctx))
+
+
 # TODO Make poll automagically update every x min.
-# TODO make bot pin poll.
 # TODO make footer time in local time.
 # TODO Poll stats?
+# TODO Make !SetPoll unpin previous poll pin.
+# TODO Make poll send out notification when poll is closed and declare winner.

@@ -46,7 +46,8 @@ async def word_count(query_str, ctx):
         results = searcher.search(query)
         embed = discord.Embed(title="Wordcount", color=discord.Color(0x3cd63d))
         for hit in results:
-            embed.add_field(name="{}".format(hit["title"]), value="Wordcount: **{}**".format(hit["wordcount"]))
+            embed.add_field(name="{}".format(hit["title"]), value="Wordcount: **{}**".format(hit["wordcount"]),
+                            inline=False)
         await ctx.send(embed=embed)
 
 # TODO Allow search sorting by time instead of score
@@ -57,3 +58,4 @@ async def word_count(query_str, ctx):
 # TODO Add error handling
 # TODO automatically add the latest public chapter to index
 # TODO Remove next chapter/previous chapter from bottom of content
+# TODO fix !wordcount not being able to search single letter
