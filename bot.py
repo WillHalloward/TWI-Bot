@@ -24,7 +24,7 @@ async def on_ready():
     print('------')
 
 
-@bot.command()
+@bot.command(aliases=["u"])
 async def updatepoll(ctx):
     await patreon_poll.update_poll(ctx)
 
@@ -34,18 +34,18 @@ async def ping(ctx):
     await ctx.send(bot.latency)
 
 
-@bot.command()
+@bot.command(aliases=["e"])
 @commands.is_owner()
-async def e(ctx, ev):
+async def evaluate(ctx, ev):
     await ctx.send(eval(ev))
 
 
-@bot.command()
+@bot.command(aliases=["f"])
 async def find(ctx, query):
     await search.search(query, ctx)
 
 
-@bot.command()
+@bot.command(aliases=["wc"])
 async def wordcount(ctx, chapter):
     await search.word_count(chapter, ctx)
 
@@ -64,9 +64,9 @@ async def refreshIndex(ctx):
     await ctx.send("@everyone Done")
 
 
-@bot.command()
+@bot.command(aliases=["p"])
 async def poll(ctx):
-    await patreon_poll.p_poll(ctx)
+    await ctx.send(embed=await patreon_poll.p_poll(ctx))
 
 
 @bot.command()
@@ -74,18 +74,18 @@ async def bet(ctx, time, words):
     await prediction.bet(ctx, time, words)
 
 
-@bot.command()
+@bot.command(aliases=["avatar"])
 async def av(ctx):
     embed = discord.Embed(title="Avatar", color=discord.Color(0x3cd63d))
     embed.set_image(url=ctx.author.avatar_url)
     await ctx.send(embed=embed)
 
 
-@bot.command()
+@bot.command(aliases=["sp"])
 @commands.is_owner()
 async def setpoll(ctx):
     if await patreon_poll.set_poll(ctx):
-        message = await ctx.send(patreon_poll.p_poll(ctx))
+        message = await ctx.send(embed=await patreon_poll.p_poll(ctx))
         await message.pin()
         with open("api_url.json", 'r') as f:
             file_json = json.load(f)

@@ -19,7 +19,7 @@ async def set_poll(ctx):
                 "api": url,
                 "url": "https://www.patreon.com" + posts['attributes']['patreon_url']
             }
-            message = await ctx.send("Poll set to <{}>".format(links['url']))
+            await ctx.send("Poll set to <{}>".format(links['url']))
 
             with open("api_url.json", "w+") as d:
                 json.dump(links, d)
