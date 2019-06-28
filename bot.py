@@ -26,12 +26,20 @@ async def on_ready():
 
 @bot.command(aliases=["u"])
 async def updatepoll(ctx):
-    await patreon_poll.update_poll(ctx)
+    try:
+        with open("api_url.json", 'r') as f:
+            file_json = json.load(f)
+    except OSError.filename:
+        return
+    msg_cha = bot.get_channel(file_json['ch_poll_id'])
+    msg = await msg_cha.fetch_message(file_json['poll_id'])
+    await msg.edit(embed=await patreon_poll.p_poll(ctx))
 
 
 @bot.command()
 async def ping(ctx):
-    await ctx.send(bot.latency)
+    ping = int(bot.latency * 100)
+    await ctx.send("{} ms".format(ping))
 
 
 @bot.command(aliases=["e"])
@@ -90,6 +98,8 @@ async def setpoll(ctx):
         with open("api_url.json", 'r') as f:
             file_json = json.load(f)
         file_json.update({"poll_id": message.id})
+        print(message.channel)
+        file_json.update({"ch_poll_id": message.channel.id})
         file_json.update({"poll_update": True})
         with open("api_url.json", "w+") as d:
             json.dump(file_json, d)

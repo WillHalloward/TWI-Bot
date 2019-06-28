@@ -60,18 +60,9 @@ async def p_poll(ctx):
     return embed
 
 
-async def update_poll(ctx):
-    try:
-        with open("api_url.json", 'r') as f:
-            file_json = json.load(f)
-    except OSError.filename:
-        return
-    msg = await ctx.fetch_message(file_json['poll_id'])
-    await msg.edit(embed=await p_poll(ctx))
-
-
 # TODO Make poll automagically update every x min.
 # TODO make footer time in local time.
 # TODO Poll stats?
 # TODO Make !SetPoll unpin previous poll pin.
 # TODO Make poll send out notification when poll is closed and declare winner.
+# TODO Fix Unknown message error with !updatepoll if the message is old.
