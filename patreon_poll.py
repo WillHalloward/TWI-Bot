@@ -33,12 +33,11 @@ async def set_poll(ctx):
     return False
 
 
-async def p_poll(ctx):
+async def p_poll():
     try:
         with open("api_url.json", 'r') as f:
             file_json = json.load(f)
     except OSError.filename:
-        await ctx.send("**Error** - No poll set, Please run **!setpoll** to set poll")
         return
     page = requests.get(file_json['api'], cookies=secrets.cookies)
     json_data = json.loads(page.text)
@@ -66,7 +65,6 @@ async def p_poll(ctx):
     return embed
 
 
-# TODO Make poll automagically update every x min.
 # TODO make footer time in local time.
 # TODO Poll stats?
 # TODO Make poll send out notification when poll is closed and declare winner.

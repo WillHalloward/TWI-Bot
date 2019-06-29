@@ -1,7 +1,8 @@
 import json
+from itertools import cycle
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import createSearchableData
 import patreon_poll
@@ -15,14 +16,42 @@ bot = commands.Bot(
     case_insensitive=True, )
 bot.remove_command("help")
 
+status = cycle(["Killing the mages of Wistram", "Cleaning up a mess", ""])
+with open("api_url.json", 'r') as f:
+    json_data = json.load(f)
 
 @bot.event
 async def on_ready():
+    status_loop.start()
+    if json_data['poll_update']:
+        auto_update_poll.start()
+    # poll_end.start()
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
     print('------')
 
+
+@tasks.loop(seconds=10)
+async def poll_end():
+    print("10")
+
+
+@tasks.loop(minutes=10)
+async def auto_update_poll():
+    try:
+        with open("api_url.json", 'r') as f:
+            file_json = json.load(f)
+    except OSError.filename:
+        return
+    msg_cha = bot.get_channel(file_json['ch_poll_id'])
+    msg = await msg_cha.fetch_message(file_json['poll_id'])
+    await msg.edit(embed=await patreon_poll.p_poll())
+
+
+@tasks.loop(seconds=10)
+async def status_loop():
+    await bot.change_presence(activity=discord.Game(next(status)))
 
 @bot.command(aliases=["u"])
 async def updatepoll(ctx):
@@ -31,10 +60,25 @@ async def updatepoll(ctx):
             file_json = json.load(f)
     except OSError.filename:
         return
-    msg_cha = await bot.get_channel(file_json['ch_poll_id'])
+    msg_cha = bot.get_channel(file_json['ch_poll_id'])
     msg = await msg_cha.fetch_message(file_json['poll_id'])
-    await msg.edit(embed=await patreon_poll.p_poll(ctx))
+    await msg.edit(embed=await patreon_poll.p_poll())
 
+
+@bot.command(aliases=["tp"])
+async def togglepoll(ctx):
+    if json_data["poll_update"]:
+        with open("api_url.json", "w") as e:
+            json_data.update({"poll_update": False})
+            json.dump(json_data, e)
+            auto_update_poll.start()
+            await ctx.send("Poll will no longer auto update every 10 min")
+    else:
+        with open("api_url.json", "w") as e:
+            json_data.update({"poll_update": True})
+            json.dump(json_data, e)
+            auto_update_poll.stop()
+            await ctx.send("Poll will now auto update every 10 min")
 
 @bot.command()
 async def ping(ctx):
@@ -93,7 +137,7 @@ async def av(ctx):
 @commands.is_owner()
 async def setpoll(ctx):
     if await patreon_poll.set_poll(ctx):
-        message = await ctx.send(embed=await patreon_poll.p_poll(ctx))
+        message = await ctx.send(embed=await patreon_poll.p_poll())
         await message.pin()
         with open("api_url.json", 'r') as f:
             file_json = json.load(f)
