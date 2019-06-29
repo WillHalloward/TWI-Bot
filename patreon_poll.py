@@ -14,15 +14,21 @@ async def set_poll(ctx):
     json_data = json.loads(page.text)
     for posts in json_data['data']:
         if posts['relationships']['poll']['data'] is not None:
-            url = posts['relationships']['poll']['links']['related']
-            links = {
-                "api": url,
-                "url": "https://www.patreon.com" + posts['attributes']['patreon_url']
-            }
-            await ctx.send("Poll set to <{}>".format(links['url']))
+            try:
+                with open("api_url.json", "r") as f:
+                    json_file = json.load(f)
+                    json_file.update({"api": posts['relationships']['poll']['links']['related']})
+                    json_file.update({"url": "https://www.patreon.com" + posts['attributes']['patreon_url']})
+            except OSError.filename:
+                print("no previous poll")
+                json_file = {
+                    "api": posts['relationships']['poll']['links']['related'],
+                    "url": "https://www.patreon.com" + posts['attributes']['patreon_url']
+                }
+            await ctx.send("Poll set to <{}>".format(json_file['url']))
 
             with open("api_url.json", "w+") as d:
-                json.dump(links, d)
+                json.dump(json_file, d)
             return True
     return False
 
@@ -63,6 +69,4 @@ async def p_poll(ctx):
 # TODO Make poll automagically update every x min.
 # TODO make footer time in local time.
 # TODO Poll stats?
-# TODO Make !SetPoll unpin previous poll pin.
 # TODO Make poll send out notification when poll is closed and declare winner.
-# TODO Fix Unknown message error with !updatepoll if the message is old.

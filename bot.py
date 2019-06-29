@@ -31,15 +31,15 @@ async def updatepoll(ctx):
             file_json = json.load(f)
     except OSError.filename:
         return
-    msg_cha = bot.get_channel(file_json['ch_poll_id'])
+    msg_cha = await bot.get_channel(file_json['ch_poll_id'])
     msg = await msg_cha.fetch_message(file_json['poll_id'])
     await msg.edit(embed=await patreon_poll.p_poll(ctx))
 
 
 @bot.command()
 async def ping(ctx):
-    ping = int(bot.latency * 100)
-    await ctx.send("{} ms".format(ping))
+    latency = int(bot.latency * 100)
+    await ctx.send("{} ms".format(latency))
 
 
 @bot.command(aliases=["e"])
@@ -97,14 +97,20 @@ async def setpoll(ctx):
         await message.pin()
         with open("api_url.json", 'r') as f:
             file_json = json.load(f)
+        try:
+            ch = bot.get_channel(file_json['ch_poll_id'])
+            msg = await ch.fetch_message(file_json['poll_id'])
+            if msg.pinned:
+                await msg.unpin()
+        except KeyError:
+            print("no previous poll")
         file_json.update({"poll_id": message.id})
-        print(message.channel)
         file_json.update({"ch_poll_id": message.channel.id})
         file_json.update({"poll_update": True})
         with open("api_url.json", "w+") as d:
             json.dump(file_json, d)
     else:
-        ctx.send("No poll found")
+        await ctx.send("No poll found")
 
 
 @bot.command()
