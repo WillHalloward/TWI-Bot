@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from itertools import cycle
 
 import discord
@@ -16,16 +17,25 @@ bot = commands.Bot(
     case_insensitive=True, )
 bot.remove_command("help")
 
-status = cycle(["Killing the mages of Wistram", "Cleaning up a mess", ""])
 with open("api_url.json", 'r') as f:
     json_data = json.load(f)
+
+status = cycle(["Killing the mages of Wistram",
+                "Cleaning up a mess",
+                "Keeping secrets",
+                "Hiding corpses",
+                "Mending Pirateaba's broken hands",
+                "Longing for Zelkyr",
+                "Banishing Chimera to #debates",
+                "Hoarding knowledge",
+                "Dusting off priceless artifacts"])
 
 @bot.event
 async def on_ready():
     status_loop.start()
     if json_data['poll_update']:
         auto_update_poll.start()
-    # poll_end.start()
+        poll_end.start()
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
@@ -34,24 +44,39 @@ async def on_ready():
 
 @tasks.loop(seconds=10)
 async def poll_end():
-    print("10")
+    if datetime.now() >= datetime.strptime(json_data['expire-date'], '%Y-%m-%dT%H:%M:%S.%f+00:00'):
+        msg_cha = bot.get_channel(json_data['ch_poll_id'])
+        await msg_cha.send(embed=await patreon_poll.finalPoll())
+        json_data.update({["poll_update"][False]})
+        with open("api_url.json", "w") as e:
+            json.dump(json_data, e)
+        poll_end.stop()
+
+
 
 
 @tasks.loop(minutes=10)
 async def auto_update_poll():
-    try:
-        with open("api_url.json", 'r') as f:
-            file_json = json.load(f)
-    except OSError.filename:
-        return
-    msg_cha = bot.get_channel(file_json['ch_poll_id'])
-    msg = await msg_cha.fetch_message(file_json['poll_id'])
+    msg_cha = bot.get_channel(json_data['ch_poll_id'])
+    msg = await msg_cha.fetch_message(json_data['poll_id'])
     await msg.edit(embed=await patreon_poll.p_poll())
 
 
 @tasks.loop(seconds=10)
 async def status_loop():
     await bot.change_presence(activity=discord.Game(next(status)))
+
+
+@bot.command()
+async def purge(ctx, amount: int):
+    await ctx.channel.purge(limit=amount)
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Please pass an argument")
+
 
 @bot.command(aliases=["u"])
 async def updatepoll(ctx):
@@ -68,22 +93,22 @@ async def updatepoll(ctx):
 @bot.command(aliases=["tp"])
 async def togglepoll(ctx):
     if json_data["poll_update"]:
+        json_data.update({"poll_update": False})
         with open("api_url.json", "w") as e:
-            json_data.update({"poll_update": False})
             json.dump(json_data, e)
-            auto_update_poll.start()
-            await ctx.send("Poll will no longer auto update every 10 min")
+        auto_update_poll.start()
+        await ctx.send("Poll will no longer auto update every 10 min")
     else:
+        json_data.update({"poll_update": True})
         with open("api_url.json", "w") as e:
-            json_data.update({"poll_update": True})
             json.dump(json_data, e)
-            auto_update_poll.stop()
-            await ctx.send("Poll will now auto update every 10 min")
+        auto_update_poll.stop()
+        await ctx.send("Poll will now auto update every 10 min")
+
 
 @bot.command()
 async def ping(ctx):
-    latency = int(bot.latency * 100)
-    await ctx.send("{} ms".format(latency))
+    await ctx.send(f"{round(bot.latency * 1000)} ms")
 
 
 @bot.command(aliases=["e"])
@@ -118,7 +143,7 @@ async def refreshIndex(ctx):
 
 @bot.command(aliases=["p"])
 async def poll(ctx):
-    await ctx.send(embed=await patreon_poll.p_poll(ctx))
+    await ctx.send(embed=await patreon_poll.p_poll())
 
 
 @bot.command()
@@ -171,12 +196,14 @@ async def help(ctx):
     embed.add_field(name="!poll", value="Posts the current tally of the patreon poll.")
     embed.add_field(name="!setPoll", value="Retrieves and pins the latest poll from patreon")
     embed.add_field(name="!updatePoll", value="Updates the pinned poll created via !setpoll")
+    embed.add_field(name="!togglePoll", value="Toggles the automatic updating of the pinned poll from !setpoll")
     embed.add_field(name="!bet", value="Stake a bet on the time and word count of the next chapter.\n"
                                        "**Usage:** !bet [time] [wordcount]\n"
                                        "**Ex:** !bet 1h 1k, !bet \"2h 30m\" 17324")
-    embed.add_field(name="!av", value="Posts the full version of your current avatar")
+    embed.add_field(name="!av", value="Posts the full version of your current avatar", inline=False)
+    embed.add_field(name="!ping", value="Gives you the latency of the bot", inline=False)
     await ctx.send(embed=embed)
 
 
 bot.run(secrets.bot_token)
-# TODO Write a better help list for !find that explains date: and title:, sub '' and more.
+# TODO Write a better help list for !find that explains date:, title:, sub '' and more.
