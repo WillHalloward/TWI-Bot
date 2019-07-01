@@ -102,6 +102,4 @@ async def finalPoll():
         embed.add_field(name=option[0], value=option[1], inline=False)
     return embed
 
-# TODO make footer time in local time.
 # TODO Poll stats?
-# TODO Make poll send out notification when poll is closed and declare winner.

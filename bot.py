@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 from itertools import cycle
@@ -35,24 +36,19 @@ async def on_ready():
     status_loop.start()
     if json_data['poll_update']:
         auto_update_poll.start()
-        poll_end.start()
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
+        await poll_end()
+    print(f'Logged in as {bot.user.name}')
     print('------')
 
 
-@tasks.loop(seconds=10)
 async def poll_end():
-    if datetime.now() >= datetime.strptime(json_data['expire-date'], '%Y-%m-%dT%H:%M:%S.%f+00:00'):
-        msg_cha = bot.get_channel(json_data['ch_poll_id'])
-        await msg_cha.send(embed=await patreon_poll.finalPoll())
-        json_data.update({["poll_update"][False]})
-        with open("api_url.json", "w") as e:
-            json.dump(json_data, e)
-        poll_end.stop()
-
-
+    time_left = datetime.strptime(json_data['expire-date'], '%Y-%m-%dT%H:%M:%S.%f+00:00') - datetime.now()
+    await asyncio.sleep(time_left.total_seconds())
+    msg_cha = bot.get_channel(json_data['ch_poll_id'])
+    await msg_cha.send("@here", embed=await patreon_poll.finalPoll())
+    json_data.update({"poll_update": False})
+    with open("api_url.json", "w") as e:
+        json.dump(json_data, e)
 
 
 @tasks.loop(minutes=10)
@@ -68,15 +64,25 @@ async def status_loop():
 
 
 @bot.command()
+@commands.is_owner()
 async def purge(ctx, amount: int):
     await ctx.channel.purge(limit=amount)
 
 
+@purge.error
+async def isError(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Please tell me how many comments you want to remove.")
+
+
 @bot.event
 async def on_command_error(ctx, error):
+    if hasattr(ctx.command, 'on_error'):
+        return
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Please pass an argument")
-
+    if isinstance(error, commands.NotOwner):
+        await ctx.send(f"Sorry {ctx.author.display_name} only ~~Zelkyr~~ Sara may do that.")
 
 @bot.command(aliases=["u"])
 async def updatepoll(ctx):
@@ -91,6 +97,7 @@ async def updatepoll(ctx):
 
 
 @bot.command(aliases=["tp"])
+@commands.is_owner()
 async def togglepoll(ctx):
     if json_data["poll_update"]:
         json_data.update({"poll_update": False})
